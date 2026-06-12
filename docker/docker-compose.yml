@@ -58,7 +58,7 @@ services:
     ports:
       - "3128:3128"
     volumes:
-      - ./squid/http/squid.conf:/etc/squid/squid.conf:ro
+      - ./squid/http/squid.conf:/etc/squid/squid/http/squid.conf:ro
     depends_on:
       openclaw:
         condition: service_healthy
