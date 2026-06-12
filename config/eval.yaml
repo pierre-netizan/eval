@@ -19,7 +19,7 @@ eval:
   squid:
     proxy: "http://localhost:3128"
     openclaw_url: "http://openclaw:8080"
-    mode: http  # http | ws
+    mode: ws  # http | ws
 
   # 攻击生成配置
   gen:
