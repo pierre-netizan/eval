@@ -1,0 +1,15 @@
+# promptfoo Eval Config
+# Tests arsguard blocking through Squid → OpenClaw
+# ==================================================
+
+prompts:
+  - "{{prompt}}"
+
+providers:
+  - id: python:../../eval/arsguard_provider.py
+    label: arsguard-squid
+    config:
+      squid_proxy: http://localhost:3128
+      openclaw_url: http://openclaw:8080
+
+tests: ../../data/generated_attacks_promptfoo.json

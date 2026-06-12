@@ -1,0 +1,30 @@
+# arsguard-eval 主配置
+# ============================================
+
+eval:
+  # 选择 runner: direct | promptfoo
+  runner: direct
+
+  # 输出目录
+  output_dir: data
+
+  # Ollama 配置
+  ollama:
+    host: "http://localhost:11434"
+    target_model: "qwen3-0.6b"
+    prompt_model: "Qwen/Qwen3-4B-Instruct-2507"
+    request_timeout: 120
+
+  # Squid 代理配置
+  squid:
+    proxy: "http://localhost:3128"
+    openclaw_url: "http://openclaw:8080"
+    mode: http  # http | ws
+
+  # 攻击生成配置
+  gen:
+    attacks_per_category: 3
+    temperature: 0.9
+
+  # 日志
+  verbose: true

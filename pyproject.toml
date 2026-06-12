@@ -1,0 +1,11 @@
+[project]
+name = "arsguard-eval"
+version = "0.1.0"
+description = "Eval project — 测试 arsguard 安全插件对 OpenClaw 的防护能力"
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
