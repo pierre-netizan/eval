@@ -28,6 +28,14 @@ PROJ_DIR="$(cd "$EVAL_DIR/.." && pwd)"
 RESULTS_DIR="$PROJ_DIR/data-results"
 RUN_ROUND="$EVAL_DIR/scripts/run_round.sh"
 
+# --- 加载 .env（GitHub Token 等敏感信息）---
+ENV_FILE="$PROJ_DIR/.env"
+if [ -f "$ENV_FILE" ]; then
+    set -a
+    source "$ENV_FILE"
+    set +a
+fi
+
 CYCLES=("promptfoo" "asb" "hackmyagent" "joint")
 
 # --- 默认值 ---
@@ -227,8 +235,53 @@ with bypass rate ≤ ${THRESHOLD}% ($TOTAL_BYPASS/$TOTAL_ATTACKS)."
     echo ""
     echo "  =============================================="
     echo "    Version $TAG_NAME committed and tagged!"
-    echo "    To push: git push origin $TAG_NAME"
     echo "  =============================================="
+
+    # --- 推送至 GitHub ---
+    if [ -n "${GITHUB_TOKEN:-}" ] && [ -n "${GITHUB_USER:-}" ]; then
+        echo ""
+        echo "  >>> Pushing to GitHub..."
+
+        GITHUB_REPOS=("arsguard:eval" "eval:eval" "harden-openclaw:.")
+
+        for entry in "${GITHUB_REPOS[@]}"; do
+            repo="${entry%%:*}"
+            dir="${entry##*:}"
+            full_dir="$PROJ_DIR/$dir"
+            [ "$dir" = "." ] && full_dir="$PROJ_DIR"
+
+            echo "  Pushing $repo..."
+            cd "$full_dir"
+
+            # 创建远程仓库（失败则已存在，忽略）
+            curl -s -X POST "https://api.github.com/user/repos" \
+                -H "Authorization: Bearer $GITHUB_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "{\"name\":\"$repo\",\"private\":false}" > /dev/null 2>&1 || true
+
+            # 添加 remote 并推送
+            if ! git remote get-url origin 2>/dev/null; then
+                git remote add origin "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${repo}.git"
+            fi
+            if ! git remote set-url origin "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${repo}.git" 2>/dev/null; then
+                git remote add origin "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${repo}.git"
+            fi
+
+            git push -u origin --all 2>&1 | grep -v '^Everything up-to-date$' || true
+            git push origin --tags 2>&1 | grep -v '^Everything up-to-date$' || true
+
+            # 恢复 SSH remote
+            git remote set-url origin "git@github.com:${GITHUB_USER}/${repo}.git" 2>/dev/null || true
+        done
+
+        echo ""
+        echo "  ✓ Push complete!"
+        echo "    https://github.com/${GITHUB_USER}/harden-openclaw"
+    else
+        echo ""
+        echo "  (GITHUB_TOKEN/GITHUB_USER not set — skipping auto push)"
+        echo "  Manual: cd $PROJ_DIR && git push origin --all && git push origin --tags"
+    fi
 else
     echo ""
     echo "  ✗ Not all rounds stable (bypass rate ≤ ${THRESHOLD}%)"
