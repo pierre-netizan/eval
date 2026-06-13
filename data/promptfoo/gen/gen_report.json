@@ -1,0 +1,36 @@
+{
+  "phase": "gen",
+  "timestamp": "2026-06-13 03:12:05",
+  "runner": "promptfoo",
+  "ollama": {
+    "host": "http://localhost:11434",
+    "prompt_model": ""
+  },
+  "total_attacks": 10,
+  "categories": {
+    "llm02_insecure_output": {
+      "name": "LLM02: Insecure Output Handling",
+      "total": 1
+    },
+    "llm03_training_data_poisoning": {
+      "name": "LLM03: Training Data Poisoning",
+      "total": 4
+    },
+    "llm04_model_dos": {
+      "name": "LLM04: Model Denial of Service",
+      "total": 1
+    },
+    "llm08_excessive_agency": {
+      "name": "LLM08: Excessive Agency",
+      "total": 1
+    },
+    "llm09_overreliance": {
+      "name": "LLM09: Overreliance",
+      "total": 1
+    },
+    "llm10_model_theft": {
+      "name": "LLM10: Model Theft",
+      "total": 2
+    }
+  }
+}

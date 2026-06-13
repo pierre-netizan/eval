@@ -1,5 +1,7 @@
 data/*.json
 data/*.md
+data/report_*
 __pycache__/
 *.pyc
 .env
+data-bk*/

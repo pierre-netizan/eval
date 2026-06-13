@@ -5,7 +5,7 @@
 ## 项目结构
 ```
 eval/
-├── config/eval.yaml            # 主配置（runner 选择、Ollama/Squid 设置）
+├── check_tag.sh                # 一键稳定性检查 + 版本提交
 ├── lib/                        # 共享库
 │   ├── base.py                 # BaseRunner 抽象基类
 │   ├── registry.py             # RunnerRegistry 注册中心
@@ -34,16 +34,25 @@ eval/
 
 ## 运行命令
 ```bash
-# 全流程
+# 一键版本提交（默认 5 轮，≤5% 则自动 commit + tag）
+./check_tag.sh
+./check_tag.sh --threshold 3
+./check_tag.sh --rounds 3 --n 500
+
+# 手动测试
+bash scripts/run_round.sh                    # 1 轮
+bash scripts/run_round.sh --rounds 5         # 5 轮
+
+# 结果分析
+python3 scripts/round_analyzer.py --round 1
+python3 scripts/round_analyzer.py --round 1 --fp
+
+# 定时任务
+bash scripts/setup_cron.sh --daily
+bash scripts/setup_cron.sh --status
+
+# 全流程（旧接口）
 bash scripts/run_all.sh
-
-# 分阶段
-bash scripts/run_gen.sh       # 生成攻击提示
-bash scripts/run_eval.sh      # 测试拦截效果
-bash scripts/run_report.sh    # 生成报告
-
-# 指定 runner
-bash scripts/run_all.sh --runner promptfoo
 
 # 设置测试环境
 bash scripts/setup.sh

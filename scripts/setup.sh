@@ -1,38 +1,47 @@
 #!/usr/bin/env bash
-# Setup test environment: Docker + Ollama models
+# Setup script: install dependencies for the eval project
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 EVAL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 cd "$EVAL_DIR"
 
-echo "[setup] Starting test environment ..."
+echo "=============================================="
+echo "  arsguard-eval Setup"
+echo "=============================================="
 
-# 1. Pull Ollama models
-echo "[setup] Pulling Ollama models ..."
-ollama pull qwen3-0.6b 2>/dev/null || echo "  qwen3-0.6b: skip (already exists or Ollama not available)"
-ollama pull Qwen/Qwen3-4B-Instruct-2507 2>/dev/null || echo "  Qwen3-4B: skip (already exists or Ollama not available)"
+# Python deps
+if [ -f pyproject.toml ]; then
+    echo "  Installing Python dependencies..."
+    pip install -e . 2>/dev/null || pip install pyyaml jsonschema 2>/dev/null || true
+fi
 
-# 2. Start Docker Compose
-echo "[setup] Starting Docker services (Ollama + Squid + OpenClaw) ..."
-docker compose -f docker/docker-compose.yml up -d
+# Check for inotifywait
+if ! command -v inotifywait &>/dev/null; then
+    echo ""
+    echo "  [WARNING] inotifywait not found."
+    echo "  Install inotify-tools for auto-test watch mode:"
+    echo "    sudo apt install inotify-tools   # Debian/Ubuntu"
+    echo "    sudo yum install inotify-tools   # RHEL/CentOS"
+    echo ""
+fi
 
-# 3. Wait for services
-echo "[setup] Waiting for services ..."
-echo "  → Ollama: http://localhost:11434"
-for i in $(seq 1 30); do
-    if curl -sf http://localhost:11434/api/tags >/dev/null 2>&1; then
-        echo "    Ollama ready"
-        break
-    fi
-    sleep 2
-done
-echo "  → Squid: http://localhost:3128"
-for i in $(seq 1 20); do
-    if curl -sf -x http://localhost:3128 http://openclaw:8080/health >/dev/null 2>&1; then
-        echo "    Squid/OpenClaw ready"
-        break
-    fi
-    sleep 2
-done
+# Check for xelatex
+if ! command -v xelatex &>/dev/null; then
+    echo "  [WARNING] xelatex not found."
+    echo "  Install texlive for PDF report generation:"
+    echo "    sudo apt install texlive-xetex texlive-lang-chinese"
+    echo ""
+fi
 
-echo "[setup] Done. Test environment is ready."
+echo ""
+echo "  Setup complete."
+echo ""
+echo "  Available commands:"
+echo "    python3 scripts/test_comprehensive.py         # Run all tests"
+echo "    python3 scripts/test_comprehensive.py --tool asb  # Single tool"
+echo "    bash scripts/run_all.sh                       # Full pipeline"
+echo "    bash scripts/run_tool.sh asb                  # Single tool pipeline"
+echo "    bash scripts/run_watch.sh                     # Auto-test on changes"
+echo "    bash scripts/run_watch.sh --once              # Single test run"
+echo "=============================================="
