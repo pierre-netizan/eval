@@ -247,7 +247,7 @@ with bypass rate ≤ ${THRESHOLD}% ($TOTAL_BYPASS/$TOTAL_ATTACKS)."
         echo ""
         echo "  >>> Pushing to GitHub..."
 
-        for pair in "arsguard:eval" "eval:eval" "harden-openclaw:."; do
+        for pair in "arsguard:arsguard" "eval:eval" "harden-openclaw:."; do
             repo="${pair%%:*}"
             dir="${pair##*:}"
             full_dir="$PROJ_DIR/$dir"
@@ -270,11 +270,7 @@ with bypass rate ≤ ${THRESHOLD}% ($TOTAL_BYPASS/$TOTAL_ATTACKS)."
 
             # 设置临时 remote（使用 token）
             remote_url="https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${repo}.git"
-            if ! git remote get-url origin 2>/dev/null; then
-                git remote add origin "$remote_url"
-            else
-                git remote set-url origin "$remote_url"
-            fi
+            git remote set-url origin "$remote_url" 2>/dev/null || git remote add origin "$remote_url"
 
             # 推送（失败不崩溃）
             if ! git push -u origin --all 2>&1; then
