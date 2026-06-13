@@ -1,6 +1,6 @@
 # arsguard-eval
 
-安全测试框架，用于验证 [arsguard](https://github.com/anomalyco/opencode) 插件对 OWASP Top 10 for AI Agents 安全风险的拦截效果。
+安全测试框架，用于验证 [arsguard](https://github.com/pierre-netizan/arsguard) 插件对 OWASP Top 10 for AI Agents 安全风险的拦截效果。
 
 ## 设计哲学
 
