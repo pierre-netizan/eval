@@ -238,49 +238,67 @@ with bypass rate ≤ ${THRESHOLD}% ($TOTAL_BYPASS/$TOTAL_ATTACKS)."
     echo "  =============================================="
 
     # --- 推送至 GitHub ---
-    if [ -n "${GITHUB_TOKEN:-}" ] && [ -n "${GITHUB_USER:-}" ]; then
+    PUSH_FAILED=false
+    if [ -z "${GITHUB_TOKEN:-}" ] || [ -z "${GITHUB_USER:-}" ]; then
+        echo ""
+        echo "  ⚠ .env 缺失或 GITHUB_TOKEN/GITHUB_USER 未设置，跳过推送"
+        echo "  Manual: cd $PROJ_DIR && git push origin --all && git push origin --tags"
+    else
         echo ""
         echo "  >>> Pushing to GitHub..."
 
-        GITHUB_REPOS=("arsguard:eval" "eval:eval" "harden-openclaw:.")
-
-        for entry in "${GITHUB_REPOS[@]}"; do
-            repo="${entry%%:*}"
-            dir="${entry##*:}"
+        for pair in "arsguard:eval" "eval:eval" "harden-openclaw:."; do
+            repo="${pair%%:*}"
+            dir="${pair##*:}"
             full_dir="$PROJ_DIR/$dir"
             [ "$dir" = "." ] && full_dir="$PROJ_DIR"
 
             echo "  Pushing $repo..."
-            cd "$full_dir"
+            cd "$full_dir" || { echo "  ✗ Cannot cd to $full_dir"; PUSH_FAILED=true; continue; }
 
-            # 创建远程仓库（失败则已存在，忽略）
-            curl -s -X POST "https://api.github.com/user/repos" \
+            # 创建远程仓库（可能因已存在或 token 失效而失败）
+            api_result=$(curl -s -X POST "https://api.github.com/user/repos" \
                 -H "Authorization: Bearer $GITHUB_TOKEN" \
                 -H "Content-Type: application/json" \
-                -d "{\"name\":\"$repo\",\"private\":false}" > /dev/null 2>&1 || true
+                -d "{\"name\":\"$repo\",\"private\":false}")
+            api_msg=$(echo "$api_result" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('message',''))" 2>/dev/null)
+            if echo "$api_msg" | grep -qi "bad credentials"; then
+                echo "  ✗ Token invalid or expired — push aborted"
+                PUSH_FAILED=true
+                break
+            fi
 
-            # 添加 remote 并推送
+            # 设置临时 remote（使用 token）
+            remote_url="https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${repo}.git"
             if ! git remote get-url origin 2>/dev/null; then
-                git remote add origin "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${repo}.git"
-            fi
-            if ! git remote set-url origin "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${repo}.git" 2>/dev/null; then
-                git remote add origin "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/${GITHUB_USER}/${repo}.git"
+                git remote add origin "$remote_url"
+            else
+                git remote set-url origin "$remote_url"
             fi
 
-            git push -u origin --all 2>&1 | grep -v '^Everything up-to-date$' || true
-            git push origin --tags 2>&1 | grep -v '^Everything up-to-date$' || true
+            # 推送（失败不崩溃）
+            if ! git push -u origin --all 2>&1; then
+                echo "  ✗ Push failed for $repo — check token or network"
+                PUSH_FAILED=true
+                git remote set-url origin "git@github.com:${GITHUB_USER}/${repo}.git" 2>/dev/null || true
+                continue
+            fi
+            git push origin --tags 2>&1 || true
 
             # 恢复 SSH remote
             git remote set-url origin "git@github.com:${GITHUB_USER}/${repo}.git" 2>/dev/null || true
+            echo "  ✓ $repo pushed"
         done
 
-        echo ""
-        echo "  ✓ Push complete!"
-        echo "    https://github.com/${GITHUB_USER}/harden-openclaw"
-    else
-        echo ""
-        echo "  (GITHUB_TOKEN/GITHUB_USER not set — skipping auto push)"
-        echo "  Manual: cd $PROJ_DIR && git push origin --all && git push origin --tags"
+        if $PUSH_FAILED; then
+            echo ""
+            echo "  ⚠ Some pushes failed. Check token or network and retry manually:"
+            echo "  cd $PROJ_DIR && git push origin --all && git push origin --tags"
+        else
+            echo ""
+            echo "  ✓ All repos pushed!"
+            echo "    https://github.com/${GITHUB_USER}/harden-openclaw"
+        fi
     fi
 else
     echo ""
