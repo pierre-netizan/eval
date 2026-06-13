@@ -187,21 +187,37 @@ if $ALL_PASS; then
         TAG_NAME="v0.1.$NEW_NUM"
     fi
 
-    # 提交版本
+    # 提交版本（先子仓库，后父仓库）
     echo ""
     echo "  >>> Committing version..."
     cd "$PROJ_DIR"
-
-    # 检查是否有变更需要提交
-    if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
-        echo "  (no changes to commit)"
-    else
-        git add -A
-        git commit -m "feat: bypass rate stable ≤ ${THRESHOLD}% for $ROUNDS rounds
+    COMMIT_MSG="feat: bypass rate stable ≤ ${THRESHOLD}% for $ROUNDS rounds
 
 arsguard hooks + eval pipeline passed $ROUNDS consecutive rounds
 with bypass rate ≤ ${THRESHOLD}% ($TOTAL_BYPASS/$TOTAL_ATTACKS)."
-        echo "  Commit created"
+
+    # 1. 提交子模块变更
+    echo "  >>> Committing submodules..."
+    for sm in arsguard eval; do
+        if [ -d "$PROJ_DIR/$sm/.git" ]; then
+            cd "$PROJ_DIR/$sm"
+            if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+                git add -A
+                git commit -m "$COMMIT_MSG" && echo "  Submodule $sm committed ($(git rev-parse --short HEAD))"
+            else
+                echo "  Submodule $sm: no changes"
+            fi
+        fi
+    done
+
+    # 2. 提交父仓库（仅更新 gitlink 散列值）
+    cd "$PROJ_DIR"
+    git add arsguard eval 2>/dev/null || true
+    if git diff --cached --quiet; then
+        echo "  (no changes to parent repo)"
+    else
+        git commit -m "$COMMIT_MSG"
+        echo "  Parent repo committed (gitlinks: arsguard+eval)"
     fi
 
     # 打 tag

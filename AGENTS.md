@@ -34,7 +34,7 @@ eval/
 
 ## 运行命令
 ```bash
-# 一键版本提交（默认 5 轮，≤5% 则自动 commit + tag）
+# 一键版本提交（默认 5 轮，≤5% 则自动提交子仓库 → 父仓库 → tag）
 ./check_tag.sh
 ./check_tag.sh --threshold 3
 ./check_tag.sh --rounds 3 --n 500
